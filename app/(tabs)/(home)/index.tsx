@@ -1,43 +1,63 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { ScrollView, StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { colors } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
+import { useRouter } from "expo-router";
 
-interface StorePrice {
-  store: string;
-  price: number;
-  location: string;
+interface Product {
+  id: string;
+  name: string;
+  description: string;
   icon: string;
-  color: string;
+  iosIcon: string;
 }
 
-export default function HomeScreen() {
-  const [storePrices] = useState<StorePrice[]>([
-    {
-      store: "Fry's Food Store",
-      price: 24.99,
-      location: "Phoenix, AZ",
-      icon: "storefront",
-      color: "#0066CC",
-    },
-    {
-      store: "Walmart",
-      price: 22.98,
-      location: "Phoenix, AZ",
-      icon: "shopping_cart",
-      color: "#0071CE",
-    },
-    {
-      store: "Safeway",
-      price: 26.49,
-      location: "Phoenix, AZ",
-      icon: "local_grocery_store",
-      color: "#E31837",
-    },
-  ]);
+const products: Product[] = [
+  {
+    id: "modelo-24",
+    name: "Modelo Especial 24-Pack",
+    description: "24 pack of 12 oz cans",
+    icon: "local_bar",
+    iosIcon: "wineglass.fill",
+  },
+  {
+    id: "high-noon-8",
+    name: "High Noon Seltzer 8-Pack",
+    description: "8 pack of hard seltzer",
+    icon: "liquor",
+    iosIcon: "sparkles",
+  },
+  {
+    id: "chicken-breast",
+    name: "Chicken Breast",
+    description: "Price per pound",
+    icon: "restaurant",
+    iosIcon: "fork.knife",
+  },
+  {
+    id: "ground-beef",
+    name: "85% Lean Ground Beef",
+    description: "Price per pound",
+    icon: "restaurant_menu",
+    iosIcon: "flame.fill",
+  },
+  {
+    id: "eggs-dozen",
+    name: "Dozen Eggs",
+    description: "12 large eggs",
+    icon: "egg",
+    iosIcon: "circle.grid.3x3.fill",
+  },
+];
 
-  const lowestPrice = Math.min(...storePrices.map(sp => sp.price));
+export default function HomeScreen() {
+  const router = useRouter();
+
+  const handleProductPress = (productId: string) => {
+    console.log("Navigating to product:", productId);
+    router.push(`/(tabs)/(home)/product/${productId}`);
+  };
 
   return (
     <View style={styles.container}>
@@ -54,93 +74,45 @@ export default function HomeScreen() {
             color={colors.primary} 
           />
           <Text style={styles.title}>Grocery Price Comparison</Text>
-          <Text style={styles.subtitle}>Find the best deals in your area</Text>
+          <Text style={styles.subtitle}>Compare prices across local stores</Text>
         </View>
 
-        <View style={styles.productCard}>
-          <View style={styles.productHeader}>
-            <IconSymbol 
-              ios_icon_name="wineglass.fill" 
-              android_material_icon_name="local_bar" 
-              size={32} 
-              color={colors.accent} 
-            />
-            <View style={styles.productInfo}>
-              <Text style={styles.productName}>Modelo Especial</Text>
-              <Text style={styles.productDetails}>24-Pack (12 oz cans)</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.pricesSection}>
-          <Text style={styles.sectionTitle}>Store Prices</Text>
+        <View style={styles.productsSection}>
+          <Text style={styles.sectionTitle}>Select a Product</Text>
+          <Text style={styles.sectionSubtitle}>Tap any item to see pricing at Fry&apos;s, Walmart, and Safeway</Text>
           
-          {storePrices.map((storePrice, index) => {
-            const isLowest = storePrice.price === lowestPrice;
-            
-            return (
-              <React.Fragment key={index}>
-                <TouchableOpacity 
-                  style={[
-                    styles.storeCard,
-                    isLowest && styles.storeCardLowest
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.storeCardContent}>
-                    <View style={[styles.storeIconContainer, { backgroundColor: storePrice.color }]}>
-                      <IconSymbol 
-                        ios_icon_name="storefront" 
-                        android_material_icon_name={storePrice.icon} 
-                        size={28} 
-                        color="#FFFFFF" 
-                      />
-                    </View>
-                    
-                    <View style={styles.storeInfo}>
-                      <Text style={styles.storeName}>{storePrice.store}</Text>
-                      <Text style={styles.storeLocation}>{storePrice.location}</Text>
-                    </View>
-                    
-                    <View style={styles.priceContainer}>
-                      <Text style={[styles.price, isLowest && styles.priceLowest]}>
-                        ${storePrice.price.toFixed(2)}
-                      </Text>
-                      {isLowest && (
-                        <View style={styles.bestPriceBadge}>
-                          <IconSymbol 
-                            ios_icon_name="star.fill" 
-                            android_material_icon_name="star" 
-                            size={14} 
-                            color={colors.highlight} 
-                          />
-                          <Text style={styles.bestPriceText}>Best Price</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </React.Fragment>
-            );
-          })}
-        </View>
-
-        <View style={styles.savingsCard}>
-          <IconSymbol 
-            ios_icon_name="dollarsign.circle.fill" 
-            android_material_icon_name="savings" 
-            size={32} 
-            color={colors.primary} 
-          />
-          <View style={styles.savingsInfo}>
-            <Text style={styles.savingsTitle}>Potential Savings</Text>
-            <Text style={styles.savingsAmount}>
-              Save up to ${(Math.max(...storePrices.map(sp => sp.price)) - lowestPrice).toFixed(2)}
-            </Text>
-            <Text style={styles.savingsDescription}>
-              by shopping at the lowest priced store
-            </Text>
-          </View>
+          {products.map((product, index) => (
+            <React.Fragment key={index}>
+              <TouchableOpacity 
+                style={styles.productCard}
+                activeOpacity={0.7}
+                onPress={() => handleProductPress(product.id)}
+              >
+                <View style={styles.productIconContainer}>
+                  <IconSymbol 
+                    ios_icon_name={product.iosIcon} 
+                    android_material_icon_name={product.icon} 
+                    size={32} 
+                    color={colors.primary} 
+                  />
+                </View>
+                
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName}>{product.name}</Text>
+                  <Text style={styles.productDescription}>{product.description}</Text>
+                </View>
+                
+                <View style={styles.arrowContainer}>
+                  <IconSymbol 
+                    ios_icon_name="chevron.right" 
+                    android_material_icon_name="chevron_right" 
+                    size={24} 
+                    color={colors.textSecondary} 
+                  />
+                </View>
+              </TouchableOpacity>
+            </React.Fragment>
+          ))}
         </View>
 
         <View style={styles.infoCard}>
@@ -174,7 +146,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   title: {
     fontSize: 28,
@@ -189,136 +161,57 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  productCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
-  },
-  productHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  productInfo: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  productName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  productDetails: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  pricesSection: {
+  productsSection: {
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  storeCard: {
+  sectionSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  productCard: {
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
-    elevation: 2,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  storeCardLowest: {
-    borderColor: colors.highlight,
-    boxShadow: '0px 4px 12px rgba(255, 215, 0, 0.3)',
-    elevation: 4,
-  },
-  storeCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.secondary,
   },
-  storeIconContainer: {
+  productIconContainer: {
     width: 56,
     height: 56,
     borderRadius: 28,
+    backgroundColor: colors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  storeInfo: {
+  productInfo: {
     flex: 1,
     marginLeft: 16,
   },
-  storeName: {
+  productName: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.text,
   },
-  storeLocation: {
+  productDescription: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
   },
-  priceContainer: {
-    alignItems: 'flex-end',
-  },
-  price: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  priceLowest: {
-    color: colors.accent,
-  },
-  bestPriceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.highlight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 4,
-  },
-  bestPriceText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.text,
-    marginLeft: 4,
-  },
-  savingsCard: {
-    backgroundColor: colors.secondary,
-    borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
-    elevation: 2,
-  },
-  savingsInfo: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  savingsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  savingsAmount: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.primary,
-    marginTop: 4,
-  },
-  savingsDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
+  arrowContainer: {
+    marginLeft: 8,
   },
   infoCard: {
     backgroundColor: colors.card,
