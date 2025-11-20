@@ -17,7 +17,7 @@ const products: Product[] = [
   {
     id: "modelo-24",
     name: "Modelo Especial 24-Pack",
-    description: "24 pack of 12 oz cans",
+    description: "24 pack of 12 oz bottles",
     icon: "local_bar",
     iosIcon: "wineglass.fill",
   },
@@ -123,7 +123,7 @@ export default function HomeScreen() {
             color={colors.primary} 
           />
           <Text style={styles.infoText}>
-            Prices are estimates and may vary by location. Please check with stores for current pricing.
+            Prices are updated from store websites when available. Tap Modelo to see live price fetching in action!
           </Text>
         </View>
       </ScrollView>
