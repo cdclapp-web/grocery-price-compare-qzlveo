@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { Stack } from 'expo-router';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
+import { colors } from '@/styles/commonStyles';
 
 export default function TabLayout() {
   // Define the tabs configuration
@@ -26,6 +28,7 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           animation: 'none', // Remove fade animation to prevent black screen flash
+          contentStyle: { backgroundColor: colors.background },
         }}
       >
         <Stack.Screen key="home" name="(home)" />

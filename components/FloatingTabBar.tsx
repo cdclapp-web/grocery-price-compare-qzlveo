@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   View,
@@ -20,6 +21,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Href } from 'expo-router';
+import { colors } from '@/styles/commonStyles';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -98,8 +100,6 @@ export default function FloatingTabBar({
     router.push(route);
   };
 
-  // Remove unnecessary tabBarStyle animation to prevent flickering
-
   const tabWidthPercent = ((100 / tabs.length) - 1).toFixed(2);
 
   const indicatorStyle = useAnimatedStyle(() => {
@@ -122,22 +122,16 @@ export default function FloatingTabBar({
     blurContainer: {
       ...styles.blurContainer,
       borderWidth: 1.2,
-      borderColor: 'rgba(255, 255, 255, 1)',
+      borderColor: colors.primary,
       ...Platform.select({
         ios: {
-          backgroundColor: theme.dark
-            ? 'rgba(28, 28, 30, 0.8)'
-            : 'rgba(255, 255, 255, 0.6)',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
         },
         android: {
-          backgroundColor: theme.dark
-            ? 'rgba(28, 28, 30, 0.95)'
-            : 'rgba(255, 255, 255, 0.6)',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
         },
         web: {
-          backgroundColor: theme.dark
-            ? 'rgba(28, 28, 30, 0.95)'
-            : 'rgba(255, 255, 255, 0.6)',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(10px)',
         },
       }),
@@ -147,9 +141,7 @@ export default function FloatingTabBar({
     },
     indicator: {
       ...styles.indicator,
-      backgroundColor: theme.dark
-        ? 'rgba(255, 255, 255, 0.08)' // Subtle white overlay in dark mode
-        : 'rgba(0, 0, 0, 0.04)', // Subtle black overlay in light mode
+      backgroundColor: colors.secondary,
       width: `${tabWidthPercent}%` as `${number}%`, // Dynamic width based on number of tabs
     },
   };
@@ -176,23 +168,22 @@ export default function FloatingTabBar({
               return (
                 <React.Fragment key={index}>
                 <TouchableOpacity
-                  key={index} // Use index as key
                   style={styles.tab}
                   onPress={() => handleTabPress(tab.route)}
                   activeOpacity={0.7}
                 >
-                  <View key={index} style={styles.tabContent}>
+                  <View style={styles.tabContent}>
                     <IconSymbol
                       android_material_icon_name={tab.icon}
                       ios_icon_name={tab.icon}
                       size={24}
-                      color={isActive ? theme.colors.primary : (theme.dark ? '#98989D' : '#000000')}
+                      color={isActive ? colors.primary : colors.textSecondary}
                     />
                     <Text
                       style={[
                         styles.tabLabel,
-                        { color: theme.dark ? '#98989D' : '#8E8E93' },
-                        isActive && { color: theme.colors.primary, fontWeight: '600' },
+                        { color: colors.textSecondary },
+                        isActive && { color: colors.primary, fontWeight: '600' },
                       ]}
                     >
                       {tab.label}
