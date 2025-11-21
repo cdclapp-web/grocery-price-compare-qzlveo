@@ -1,10 +1,9 @@
 
-import React, { useMemo, useState, useEffect } from "react";
-import { ScrollView, StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import React, { useMemo } from "react";
+import { ScrollView, StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { colors } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { fetchModeloPrices, getFallbackModeloPrices, ScrapedPrice } from "@/services/priceScraperService";
 
 interface StorePrice {
   store: string;
@@ -12,7 +11,6 @@ interface StorePrice {
   location: string;
   icon: string;
   color: string;
-  error?: string;
 }
 
 interface ProductData {
@@ -94,75 +92,14 @@ const productsData: Record<string, ProductData> = {
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
-  const [scrapedPrices, setScrapedPrices] = useState<ScrapedPrice[] | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const productData = useMemo(() => {
     return productsData[id as string];
   }, [id]);
 
-  // Fetch prices for Modelo when component mounts
-  useEffect(() => {
-    if (id === "modelo-24") {
-      loadModeloPrices();
-    }
-  }, [id]);
-
-  const loadModeloPrices = async () => {
-    console.log("Loading Modelo prices...");
-    setIsLoadingPrices(true);
-    
-    try {
-      const prices = await fetchModeloPrices();
-      console.log("Scraped prices:", prices);
-      setScrapedPrices(prices);
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error("Error loading Modelo prices:", error);
-      // Use fallback prices on error
-      const fallbackPrices = getFallbackModeloPrices();
-      setScrapedPrices(fallbackPrices);
-      setLastUpdated(new Date());
-    } finally {
-      setIsLoadingPrices(false);
-    }
-  };
-
   const storePrices: StorePrice[] = useMemo(() => {
     if (!productData) return [];
     
-    // For Modelo, use scraped prices if available
-    if (id === "modelo-24" && scrapedPrices) {
-      return [
-        {
-          store: "Fry's Food Store",
-          price: scrapedPrices.find(p => p.store === "Fry's Food Store")?.price || productData.prices.frys,
-          location: "Phoenix, AZ",
-          icon: "storefront",
-          color: "#0066CC",
-          error: scrapedPrices.find(p => p.store === "Fry's Food Store")?.error,
-        },
-        {
-          store: "Walmart",
-          price: scrapedPrices.find(p => p.store === "Walmart")?.price || productData.prices.walmart,
-          location: "Phoenix, AZ",
-          icon: "shopping_cart",
-          color: "#0071CE",
-          error: scrapedPrices.find(p => p.store === "Walmart")?.error,
-        },
-        {
-          store: "Safeway",
-          price: scrapedPrices.find(p => p.store === "Safeway")?.price || productData.prices.safeway,
-          location: "Phoenix, AZ",
-          icon: "local_grocery_store",
-          color: "#E31837",
-          error: scrapedPrices.find(p => p.store === "Safeway")?.error,
-        },
-      ];
-    }
-    
-    // For other products, use hardcoded prices
     return [
       {
         store: "Fry's Food Store",
@@ -186,7 +123,7 @@ export default function ProductDetailScreen() {
         color: "#E31837",
       },
     ];
-  }, [productData, id, scrapedPrices]);
+  }, [productData]);
 
   const lowestPrice = useMemo(() => {
     const validPrices = storePrices.filter(sp => sp.price > 0).map(sp => sp.price);
@@ -252,59 +189,11 @@ export default function ProductDetailScreen() {
           </View>
         </View>
 
-        {id === "modelo-24" && (
-          <View style={styles.statusCard}>
-            <View style={styles.statusHeader}>
-              <IconSymbol 
-                ios_icon_name="arrow.clockwise.circle.fill" 
-                android_material_icon_name="sync" 
-                size={20} 
-                color={colors.primary} 
-              />
-              <Text style={styles.statusTitle}>Live Price Fetching</Text>
-            </View>
-            
-            {isLoadingPrices ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={styles.loadingText}>Fetching current prices from stores...</Text>
-              </View>
-            ) : (
-              <View>
-                <Text style={styles.statusText}>
-                  {scrapedPrices && scrapedPrices.some(p => p.price !== null)
-                    ? "✓ Prices updated from store websites"
-                    : "⚠ Using fallback prices (websites may be blocking requests)"}
-                </Text>
-                {lastUpdated && (
-                  <Text style={styles.statusTimestamp}>
-                    Last updated: {lastUpdated.toLocaleTimeString()}
-                  </Text>
-                )}
-                <TouchableOpacity 
-                  style={styles.refreshButton}
-                  onPress={loadModeloPrices}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol 
-                    ios_icon_name="arrow.clockwise" 
-                    android_material_icon_name="refresh" 
-                    size={16} 
-                    color={colors.primary} 
-                  />
-                  <Text style={styles.refreshButtonText}>Refresh Prices</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
-
         <View style={styles.pricesSection}>
           <Text style={styles.sectionTitle}>Store Prices</Text>
           
           {storePrices.map((storePrice, index) => {
             const isLowest = storePrice.price === lowestPrice && storePrice.price > 0;
-            const hasError = storePrice.error !== undefined;
             
             return (
               <React.Fragment key={index}>
@@ -312,7 +201,6 @@ export default function ProductDetailScreen() {
                   style={[
                     styles.storeCard,
                     isLowest && styles.storeCardLowest,
-                    hasError && styles.storeCardError,
                   ]}
                 >
                   <View style={styles.storeCardContent}>
@@ -328,9 +216,6 @@ export default function ProductDetailScreen() {
                     <View style={styles.storeInfo}>
                       <Text style={styles.storeName}>{storePrice.store}</Text>
                       <Text style={styles.storeLocation}>{storePrice.location}</Text>
-                      {hasError && (
-                        <Text style={styles.errorMessage}>⚠ {storePrice.error}</Text>
-                      )}
                     </View>
                     
                     <View style={styles.priceContainer}>
@@ -381,22 +266,6 @@ export default function ProductDetailScreen() {
             </View>
           </View>
         )}
-
-        <View style={styles.infoCard}>
-          <IconSymbol 
-            ios_icon_name="info.circle.fill" 
-            android_material_icon_name="info" 
-            size={24} 
-            color={colors.primary} 
-          />
-          <View style={styles.infoTextContainer}>
-            <Text style={styles.infoText}>
-              {id === "modelo-24" 
-                ? "This app attempts to fetch live prices from store websites. However, many websites block automated requests. If prices show as 'N/A' or seem incorrect, the websites may be blocking the requests. For accurate pricing, please visit the store websites directly."
-                : "Prices are estimates and may vary by location. Please check with stores for current pricing."}
-            </Text>
-          </View>
-        </View>
       </ScrollView>
     </View>
   );
@@ -461,60 +330,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 4,
   },
-  statusCard: {
-    backgroundColor: colors.secondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  statusTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginLeft: 8,
-  },
-  statusText: {
-    fontSize: 13,
-    color: colors.text,
-    lineHeight: 18,
-  },
-  statusTimestamp: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 13,
-    color: colors.text,
-    marginLeft: 12,
-  },
-  refreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 12,
-    alignSelf: 'flex-start',
-  },
-  refreshButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-    marginLeft: 6,
-  },
   pricesSection: {
     marginBottom: 24,
   },
@@ -538,10 +353,6 @@ const styles = StyleSheet.create({
     borderColor: colors.highlight,
     boxShadow: '0px 4px 12px rgba(255, 215, 0, 0.3)',
     elevation: 4,
-  },
-  storeCardError: {
-    borderColor: colors.accent,
-    opacity: 0.8,
   },
   storeCardContent: {
     flexDirection: 'row',
@@ -567,11 +378,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
-  },
-  errorMessage: {
-    fontSize: 11,
-    color: colors.accent,
-    marginTop: 4,
   },
   priceContainer: {
     alignItems: 'flex-end',
@@ -633,24 +439,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
-  },
-  infoCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
-    elevation: 2,
-  },
-  infoTextContainer: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  infoText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
   },
   errorContainer: {
     flex: 1,

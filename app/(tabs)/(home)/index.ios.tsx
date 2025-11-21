@@ -1,6 +1,6 @@
 
 import React from "react";
-import { ScrollView, StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { ScrollView, StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
 import { colors } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
 import { useRouter } from "expo-router";
@@ -67,14 +67,11 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <IconSymbol 
-            ios_icon_name="cart.fill" 
-            android_material_icon_name="shopping_cart" 
-            size={48} 
-            color={colors.card} 
+          <Image 
+            source={require('@/assets/images/21f6dfa1-1184-43cc-a214-a344514546aa.png')}
+            style={styles.logo}
+            resizeMode="contain"
           />
-          <Text style={styles.title}>Grocery Price Comparison</Text>
-          <Text style={styles.subtitle}>Compare prices across local stores</Text>
         </View>
 
         <View style={styles.productsSection}>
@@ -114,18 +111,6 @@ export default function HomeScreen() {
             </React.Fragment>
           ))}
         </View>
-
-        <View style={styles.infoCard}>
-          <IconSymbol 
-            ios_icon_name="info.circle.fill" 
-            android_material_icon_name="info" 
-            size={24} 
-            color={colors.primary} 
-          />
-          <Text style={styles.infoText}>
-            Prices are updated from store websites when available. Tap Modelo to see live price fetching in action!
-          </Text>
-        </View>
       </ScrollView>
     </View>
   );
@@ -148,18 +133,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.card,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.card,
-    marginTop: 4,
-    textAlign: 'center',
+  logo: {
+    width: 120,
+    height: 120,
   },
   productsSection: {
     marginBottom: 24,
@@ -212,21 +188,5 @@ const styles = StyleSheet.create({
   },
   arrowContainer: {
     marginLeft: 8,
-  },
-  infoCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
-    elevation: 2,
-  },
-  infoText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginLeft: 12,
-    flex: 1,
-    lineHeight: 18,
   },
 });
