@@ -112,14 +112,14 @@ export default function ProductDetailScreen() {
         store: "Walmart",
         price: productData.prices.walmart,
         location: "Phoenix, AZ",
-        icon: "shopping_cart",
+        icon: "storefront",
         color: "#0071CE",
       },
       {
         store: "Safeway",
         price: productData.prices.safeway,
         location: "Phoenix, AZ",
-        icon: "local_grocery_store",
+        icon: "storefront",
         color: "#E31837",
       },
     ];
@@ -163,12 +163,6 @@ export default function ProductDetailScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <IconSymbol 
-            ios_icon_name="chevron.left" 
-            android_material_icon_name="arrow_back" 
-            size={24} 
-            color={colors.card} 
-          />
           <Text style={styles.backButtonTopText}>Back</Text>
         </TouchableOpacity>
 
@@ -294,7 +288,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: colors.card,
-    marginLeft: 4,
   },
   productCard: {
     backgroundColor: colors.card,
