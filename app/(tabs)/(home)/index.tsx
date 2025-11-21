@@ -18,8 +18,8 @@ const products: Product[] = [
     id: "modelo-24",
     name: "Modelo Especial 24-Pack",
     description: "24 pack of 12 oz bottles",
-    icon: "local_bar",
-    iosIcon: "wineglass.fill",
+    icon: "liquor",
+    iosIcon: "sparkles",
   },
   {
     id: "high-noon-8",
@@ -39,8 +39,8 @@ const products: Product[] = [
     id: "ground-beef",
     name: "85% Lean Ground Beef",
     description: "Price per pound",
-    icon: "restaurant_menu",
-    iosIcon: "flame.fill",
+    icon: "restaurant",
+    iosIcon: "fork.knife",
   },
   {
     id: "eggs-dozen",
@@ -71,7 +71,7 @@ export default function HomeScreen() {
             ios_icon_name="cart.fill" 
             android_material_icon_name="shopping_cart" 
             size={48} 
-            color={colors.primary} 
+            color={colors.card} 
           />
           <Text style={styles.title}>Grocery Price Comparison</Text>
           <Text style={styles.subtitle}>Compare prices across local stores</Text>
@@ -151,13 +151,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.card,
     marginTop: 12,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.card,
     marginTop: 4,
     textAlign: 'center',
   },
@@ -167,12 +167,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.card,
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.card,
     marginBottom: 16,
     lineHeight: 20,
   },

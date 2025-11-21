@@ -33,12 +33,12 @@ const productsData: Record<string, ProductData> = {
     id: "modelo-24",
     name: "Modelo Especial 24-Pack",
     description: "24 pack of 12 oz bottles",
-    icon: "local_bar",
-    iosIcon: "wineglass.fill",
+    icon: "liquor",
+    iosIcon: "sparkles",
     prices: {
-      frys: 24.99,
-      walmart: 22.98,
-      safeway: 26.49,
+      frys: 29.99,
+      walmart: 27.94,
+      safeway: 28.88,
     },
   },
   "high-noon-8": {
@@ -49,32 +49,32 @@ const productsData: Record<string, ProductData> = {
     iosIcon: "sparkles",
     prices: {
       frys: 15.99,
-      walmart: 14.99,
-      safeway: 16.49,
+      walmart: 17.87,
+      safeway: 15.99,
     },
   },
   "chicken-breast": {
     id: "chicken-breast",
-    name: "Chicken Breast",
+    name: "Foster Farms Chicken Breast",
     description: "Price per pound",
     icon: "restaurant",
     iosIcon: "fork.knife",
     prices: {
-      frys: 3.99,
-      walmart: 3.49,
-      safeway: 4.29,
+      frys: 4.99,
+      walmart: 5.17,
+      safeway: 8.99,
     },
   },
   "ground-beef": {
     id: "ground-beef",
     name: "85% Lean Ground Beef",
     description: "Price per pound",
-    icon: "restaurant_menu",
-    iosIcon: "flame.fill",
+    icon: "restaurant",
+    iosIcon: "fork.knife",
     prices: {
-      frys: 5.99,
-      walmart: 5.49,
-      safeway: 6.29,
+      frys: 7.49,
+      walmart: 7.32,
+      safeway: 10.99,
     },
   },
   "eggs-dozen": {
@@ -84,9 +84,9 @@ const productsData: Record<string, ProductData> = {
     icon: "egg",
     iosIcon: "circle.grid.3x3.fill",
     prices: {
-      frys: 4.99,
-      walmart: 4.49,
-      safeway: 5.29,
+      frys: 2.98,
+      walmart: 1.97,
+      safeway: 4.99,
     },
   },
 };
@@ -230,7 +230,7 @@ export default function ProductDetailScreen() {
             ios_icon_name="chevron.left" 
             android_material_icon_name="arrow_back" 
             size={24} 
-            color={colors.primary} 
+            color={colors.card} 
           />
           <Text style={styles.backButtonTopText}>Back</Text>
         </TouchableOpacity>
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   backButtonTopText: {
     fontSize: 17,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.card,
     marginLeft: 4,
   },
   productCard: {
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.card,
     marginBottom: 16,
   },
   storeCard: {

@@ -2,7 +2,7 @@
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 
 export const colors = {
-  background: '#F5F5DC',      // Beige
+  background: '#51B336',      // Green
   text: '#2E2E2E',            // Dark Gray
   textSecondary: '#545454',   // Medium Gray
   primary: '#4682B4',         // Steel Blue
