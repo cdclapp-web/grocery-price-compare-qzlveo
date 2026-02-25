@@ -5,12 +5,11 @@ import { colors } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-interface StorePrice {
-  store: string;
+interface ProductPriceOption {
+  brand: string;
   price: number;
-  location: string;
-  icon: string;
-  color: string;
+  store: 'Fry\'s' | 'Walmart' | 'Safeway';
+  productName: string;
 }
 
 interface ProductData {
@@ -19,11 +18,7 @@ interface ProductData {
   description: string;
   icon: string;
   iosIcon: string;
-  prices: {
-    frys: number;
-    walmart: number;
-    safeway: number;
-  };
+  priceOptions: ProductPriceOption[];
 }
 
 const productsData: Record<string, ProductData> = {
@@ -33,11 +28,11 @@ const productsData: Record<string, ProductData> = {
     description: "24 pack of 12 oz bottles",
     icon: "liquor",
     iosIcon: "sparkles",
-    prices: {
-      frys: 29.99,
-      walmart: 27.94,
-      safeway: 28.88,
-    },
+    priceOptions: [
+      { brand: 'Modelo', price: 27.94, store: 'Walmart', productName: 'Modelo Especial 24-Pack' },
+      { brand: 'Modelo', price: 28.88, store: 'Safeway', productName: 'Modelo Especial 24-Pack' },
+      { brand: 'Modelo', price: 29.99, store: 'Fry\'s', productName: 'Modelo Especial 24-Pack' },
+    ],
   },
   "high-noon-8": {
     id: "high-noon-8",
@@ -45,23 +40,27 @@ const productsData: Record<string, ProductData> = {
     description: "8 pack of hard seltzer",
     icon: "liquor",
     iosIcon: "sparkles",
-    prices: {
-      frys: 15.99,
-      walmart: 17.87,
-      safeway: 15.99,
-    },
+    priceOptions: [
+      { brand: 'High Noon', price: 15.99, store: 'Fry\'s', productName: 'High Noon Seltzer 8-Pack' },
+      { brand: 'High Noon', price: 15.99, store: 'Safeway', productName: 'High Noon Seltzer 8-Pack' },
+      { brand: 'High Noon', price: 17.87, store: 'Walmart', productName: 'High Noon Seltzer 8-Pack' },
+    ],
   },
   "chicken-breast": {
     id: "chicken-breast",
-    name: "Foster Farms Chicken Breast",
+    name: "Chicken Breast",
     description: "Price per pound",
     icon: "restaurant",
     iosIcon: "fork.knife",
-    prices: {
-      frys: 4.99,
-      walmart: 5.17,
-      safeway: 8.99,
-    },
+    priceOptions: [
+      { brand: 'Foster Farms', price: 4.99, store: 'Fry\'s', productName: 'Foster Farms Chicken Breast' },
+      { brand: 'Foster Farms', price: 5.17, store: 'Walmart', productName: 'Foster Farms Chicken Breast' },
+      { brand: 'Kroger', price: 5.49, store: 'Fry\'s', productName: 'Kroger Chicken Breast' },
+      { brand: 'Simple Truth Organic', price: 7.99, store: 'Walmart', productName: 'Simple Truth Organic Chicken Breast' },
+      { brand: 'Heritage Farm', price: 8.49, store: 'Safeway', productName: 'Heritage Farm Chicken Breast' },
+      { brand: 'Foster Farms', price: 8.99, store: 'Safeway', productName: 'Foster Farms Chicken Breast' },
+      { brand: 'Simple Truth Organic', price: 9.99, store: 'Safeway', productName: 'Simple Truth Organic Chicken Breast' },
+    ],
   },
   "ground-beef": {
     id: "ground-beef",
@@ -69,11 +68,13 @@ const productsData: Record<string, ProductData> = {
     description: "Price per pound",
     icon: "restaurant",
     iosIcon: "fork.knife",
-    prices: {
-      frys: 7.49,
-      walmart: 7.32,
-      safeway: 10.99,
-    },
+    priceOptions: [
+      { brand: 'Store Brand', price: 7.32, store: 'Walmart', productName: '85% Lean Ground Beef' },
+      { brand: 'Store Brand', price: 7.49, store: 'Fry\'s', productName: '85% Lean Ground Beef' },
+      { brand: 'Certified Angus', price: 9.99, store: 'Walmart', productName: 'Certified Angus 85% Lean Ground Beef' },
+      { brand: 'Store Brand', price: 10.99, store: 'Safeway', productName: '85% Lean Ground Beef' },
+      { brand: 'Organic Valley', price: 12.99, store: 'Safeway', productName: 'Organic Valley 85% Lean Ground Beef' },
+    ],
   },
   "eggs-dozen": {
     id: "eggs-dozen",
@@ -81,95 +82,53 @@ const productsData: Record<string, ProductData> = {
     description: "12 large eggs",
     icon: "egg",
     iosIcon: "circle.grid.3x3.fill",
-    prices: {
-      frys: 2.98,
-      walmart: 1.97,
-      safeway: 4.99,
-    },
+    priceOptions: [
+      { brand: 'Great Value', price: 1.97, store: 'Walmart', productName: 'Great Value Large Eggs' },
+      { brand: 'Kroger', price: 2.98, store: 'Fry\'s', productName: 'Kroger Large Eggs' },
+      { brand: 'Eggland\'s Best', price: 4.49, store: 'Walmart', productName: 'Eggland\'s Best Large Eggs' },
+      { brand: 'O Organics', price: 4.99, store: 'Safeway', productName: 'O Organics Large Eggs' },
+      { brand: 'Vital Farms', price: 6.99, store: 'Safeway', productName: 'Vital Farms Pasture-Raised Eggs' },
+    ],
   },
 };
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [livePrices, setLivePrices] = useState<{ frys: number; walmart: number; safeway: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
 
   const productData = useMemo(() => {
     return productsData[id as string];
   }, [id]);
 
-  useEffect(() => {
-    const fetchLivePrices = async () => {
-      if (!productData) return;
-      
-      console.log("Fetching live prices for product:", productData.id);
-      setLoading(true);
-      setError(null);
-
-      try {
-        // TODO: Backend Integration - GET /api/prices/:productId
-        // Expected response: { frys: number, walmart: number, safeway: number }
-        // This endpoint will scrape prices from:
-        // - Walmart Tempe Supercenter (800 E Southern Ave, Tempe, AZ 85282)
-        // - Fry's Food Rural Southern (3255 S Rural Rd Tempe, AZ 85282)
-        // - Safeway Broadway (926 E Broadway Rd Tempe, AZ 85282)
-        
-        // For now, using hardcoded prices as fallback
-        console.log("Using hardcoded prices (backend integration pending)");
-        setLivePrices(productData.prices);
-      } catch (err) {
-        console.error("Error fetching live prices:", err);
-        setError("Failed to fetch live prices. Showing cached data.");
-        setLivePrices(productData.prices);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLivePrices();
+  const sortedPriceOptions = useMemo(() => {
+    if (!productData) return [];
+    const sorted = [...productData.priceOptions].sort((a, b) => a.price - b.price);
+    return sorted;
   }, [productData]);
 
-  const storePrices: StorePrice[] = useMemo(() => {
-    if (!productData) return [];
-    
-    const prices = livePrices || productData.prices;
-    
-    return [
-      {
-        store: "Fry's Food Store",
-        price: prices.frys,
-        location: "3255 S Rural Rd, Tempe, AZ",
-        icon: "storefront",
-        color: "#0066CC",
-      },
-      {
-        store: "Walmart",
-        price: prices.walmart,
-        location: "800 E Southern Ave, Tempe, AZ",
-        icon: "storefront",
-        color: "#0071CE",
-      },
-      {
-        store: "Safeway",
-        price: prices.safeway,
-        location: "926 E Broadway Rd, Tempe, AZ",
-        icon: "storefront",
-        color: "#E31837",
-      },
-    ];
-  }, [productData, livePrices]);
+  const lowestPriceOption = useMemo(() => {
+    return sortedPriceOptions.length > 0 ? sortedPriceOptions[0] : null;
+  }, [sortedPriceOptions]);
 
-  const lowestPrice = useMemo(() => {
-    const validPrices = storePrices.filter(sp => sp.price > 0).map(sp => sp.price);
-    return validPrices.length > 0 ? Math.min(...validPrices) : 0;
-  }, [storePrices]);
+  const additionalOptions = useMemo(() => {
+    return sortedPriceOptions.slice(1);
+  }, [sortedPriceOptions]);
 
-  const highestPrice = useMemo(() => {
-    const validPrices = storePrices.filter(sp => sp.price > 0).map(sp => sp.price);
-    return validPrices.length > 0 ? Math.max(...validPrices) : 0;
-  }, [storePrices]);
+  const getStoreColor = (store: string) => {
+    const storeColorMap: Record<string, string> = {
+      'Fry\'s': colors.frysRed,
+      'Walmart': colors.walmartBlue,
+      'Safeway': colors.safewayRed,
+    };
+    return storeColorMap[store] || colors.primary;
+  };
+
+  const handleToggleMoreOptions = () => {
+    console.log('Toggling more options:', !showMoreOptions);
+    setShowMoreOptions(!showMoreOptions);
+  };
 
   if (!productData) {
     return (
@@ -186,6 +145,9 @@ export default function ProductDetailScreen() {
       </View>
     );
   }
+
+  const lowestPriceText = lowestPriceOption ? `$${lowestPriceOption.price.toFixed(2)}` : 'N/A';
+  const hasMoreOptions = additionalOptions.length > 0;
 
   return (
     <View style={styles.container}>
@@ -222,72 +184,89 @@ export default function ProductDetailScreen() {
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Fetching live prices...</Text>
-          </View>
-        )}
-
-        {error && (
-          <View style={styles.errorBanner}>
-            <IconSymbol 
-              ios_icon_name="exclamationmark.triangle.fill" 
-              android_material_icon_name="warning" 
-              size={20} 
-              color={colors.accent} 
-            />
-            <Text style={styles.errorBannerText}>{error}</Text>
+            <Text style={styles.loadingText}>Loading prices...</Text>
           </View>
         )}
 
         <View style={styles.pricesSection}>
-          <Text style={styles.sectionTitle}>Store Prices</Text>
+          <Text style={styles.sectionTitle}>Best Price</Text>
           
-          {storePrices.map((storePrice, index) => {
-            const isLowest = storePrice.price === lowestPrice && storePrice.price > 0;
+          {lowestPriceOption && (
+            <View style={[styles.priceCard, styles.priceCardLowest]}>
+              <View style={styles.priceCardContent}>
+                <View style={[styles.storeIconContainer, { backgroundColor: getStoreColor(lowestPriceOption.store) }]}>
+                  <IconSymbol 
+                    ios_icon_name="storefront" 
+                    android_material_icon_name="store" 
+                    size={28} 
+                    color="#FFFFFF" 
+                  />
+                </View>
+                
+                <View style={styles.priceInfo}>
+                  <Text style={styles.brandName}>{lowestPriceOption.brand}</Text>
+                  <Text style={styles.storeName}>{lowestPriceOption.store}</Text>
+                  <Text style={styles.productNameText}>{lowestPriceOption.productName}</Text>
+                </View>
+                
+                <View style={styles.priceContainer}>
+                  <Text style={[styles.price, styles.priceLowest]}>{lowestPriceText}</Text>
+                  <View style={styles.bestPriceBadge}>
+                    <IconSymbol 
+                      ios_icon_name="star.fill" 
+                      android_material_icon_name="star" 
+                      size={14} 
+                      color={colors.highlight} 
+                    />
+                    <Text style={styles.bestPriceText}>Best Price</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {hasMoreOptions && (
+            <TouchableOpacity 
+              style={styles.moreOptionsButton}
+              onPress={handleToggleMoreOptions}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.moreOptionsText}>
+                {showMoreOptions ? 'Hide Options' : 'More Options'}
+              </Text>
+              <IconSymbol 
+                ios_icon_name={showMoreOptions ? "chevron.up" : "chevron.down"} 
+                android_material_icon_name={showMoreOptions ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+                size={20} 
+                color={colors.primary} 
+              />
+            </TouchableOpacity>
+          )}
+
+          {showMoreOptions && additionalOptions.map((option, index) => {
+            const priceText = `$${option.price.toFixed(2)}`;
             
             return (
               <React.Fragment key={index}>
-                <View 
-                  style={[
-                    styles.storeCard,
-                    isLowest && styles.storeCardLowest,
-                  ]}
-                >
-                  <View style={styles.storeCardContent}>
-                    <View style={[styles.storeIconContainer, { backgroundColor: storePrice.color }]}>
+                <View style={styles.priceCard}>
+                  <View style={styles.priceCardContent}>
+                    <View style={[styles.storeIconContainer, { backgroundColor: getStoreColor(option.store) }]}>
                       <IconSymbol 
                         ios_icon_name="storefront" 
-                        android_material_icon_name={storePrice.icon} 
+                        android_material_icon_name="store" 
                         size={28} 
                         color="#FFFFFF" 
                       />
                     </View>
                     
-                    <View style={styles.storeInfo}>
-                      <Text style={styles.storeName}>{storePrice.store}</Text>
-                      <Text style={styles.storeLocation}>{storePrice.location}</Text>
+                    <View style={styles.priceInfo}>
+                      <Text style={styles.brandName}>{option.brand}</Text>
+                      <Text style={styles.storeName}>{option.store}</Text>
+                      <Text style={styles.productNameText}>{option.productName}</Text>
                     </View>
                     
                     <View style={styles.priceContainer}>
-                      {storePrice.price > 0 ? (
-                        <>
-                          <Text style={[styles.price, isLowest && styles.priceLowest]}>
-                            ${storePrice.price.toFixed(2)}
-                          </Text>
-                          {isLowest && (
-                            <View style={styles.bestPriceBadge}>
-                              <IconSymbol 
-                                ios_icon_name="star.fill" 
-                                android_material_icon_name="star" 
-                                size={14} 
-                                color={colors.highlight} 
-                              />
-                              <Text style={styles.bestPriceText}>Best Price</Text>
-                            </View>
-                          )}
-                        </>
-                      ) : (
-                        <Text style={styles.priceUnavailable}>N/A</Text>
-                      )}
+                      <Text style={styles.price}>{priceText}</Text>
                     </View>
                   </View>
                 </View>
@@ -296,7 +275,7 @@ export default function ProductDetailScreen() {
           })}
         </View>
 
-        {lowestPrice > 0 && highestPrice > 0 && (
+        {lowestPriceOption && additionalOptions.length > 0 && (
           <View style={styles.savingsCard}>
             <IconSymbol 
               ios_icon_name="dollarsign.circle.fill" 
@@ -307,10 +286,10 @@ export default function ProductDetailScreen() {
             <View style={styles.savingsInfo}>
               <Text style={styles.savingsTitle}>Potential Savings</Text>
               <Text style={styles.savingsAmount}>
-                Save up to ${(highestPrice - lowestPrice).toFixed(2)}
+                Save up to ${(additionalOptions[additionalOptions.length - 1].price - lowestPriceOption.price).toFixed(2)}
               </Text>
               <Text style={styles.savingsDescription}>
-                by shopping at the lowest priced store
+                by choosing the lowest priced option
               </Text>
             </View>
           </View>
@@ -393,20 +372,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: 12,
   },
-  errorBanner: {
-    backgroundColor: '#FFF3CD',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  errorBannerText: {
-    fontSize: 14,
-    color: colors.accent,
-    marginLeft: 8,
-    flex: 1,
-  },
   pricesSection: {
     marginBottom: 24,
   },
@@ -416,7 +381,7 @@ const styles = StyleSheet.create({
     color: colors.card,
     marginBottom: 16,
   },
-  storeCard: {
+  priceCard: {
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
@@ -426,12 +391,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  storeCardLowest: {
+  priceCardLowest: {
     borderColor: colors.highlight,
     boxShadow: '0px 4px 12px rgba(255, 215, 0, 0.3)',
     elevation: 4,
   },
-  storeCardContent: {
+  priceCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -442,17 +407,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  storeInfo: {
+  priceInfo: {
     flex: 1,
     marginLeft: 16,
   },
-  storeName: {
+  brandName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
-  storeLocation: {
+  storeName: {
     fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  productNameText: {
+    fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -466,11 +437,6 @@ const styles = StyleSheet.create({
   },
   priceLowest: {
     color: colors.accent,
-  },
-  priceUnavailable: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textSecondary,
   },
   bestPriceBadge: {
     flexDirection: 'row',
@@ -486,6 +452,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginLeft: 4,
+  },
+  moreOptionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.1)',
+    elevation: 2,
+  },
+  moreOptionsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+    marginRight: 8,
   },
   savingsCard: {
     backgroundColor: colors.secondary,

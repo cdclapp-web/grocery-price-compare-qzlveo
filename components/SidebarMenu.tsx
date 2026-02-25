@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 const SIDEBAR_WIDTH = width * 0.8;
@@ -23,6 +24,7 @@ interface SidebarMenuProps {
 }
 
 export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
+  const router = useRouter();
   const slideAnim = React.useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
 
   React.useEffect(() => {
@@ -44,8 +46,15 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
 
   const handleMenuItemPress = (item: string) => {
     console.log('Menu item pressed:', item);
-    // TODO: Add navigation logic for each menu item
-    onClose();
+    
+    if (item === 'Search Items') {
+      console.log('Navigating to search screen');
+      onClose();
+      router.push('/search');
+    } else {
+      console.log('Menu item not yet implemented:', item);
+      onClose();
+    }
   };
 
   const dealText = '🎉 Special Deal: 20% off all produce this week!';

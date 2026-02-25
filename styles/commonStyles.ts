@@ -12,6 +12,10 @@ export const colors = {
   highlight: '#FFD700',       // Gold
   backgroundAlt: '#EEEECC',   // Slightly darker beige
   grey: '#8B8B8B',            // Grey for borders
+  // Store-specific colors
+  frysRed: '#E32929',
+  safewayRed: '#E41720',
+  walmartBlue: '#0071CE',
 };
 
 export const buttonStyles = StyleSheet.create({
