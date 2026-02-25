@@ -1,6 +1,6 @@
 
-import React, { useMemo } from "react";
-import { ScrollView, StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import React, { useMemo, useState, useEffect } from "react";
+import { ScrollView, StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { colors } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -92,38 +92,74 @@ const productsData: Record<string, ProductData> = {
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [livePrices, setLivePrices] = useState<{ frys: number; walmart: number; safeway: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const productData = useMemo(() => {
     return productsData[id as string];
   }, [id]);
 
+  useEffect(() => {
+    const fetchLivePrices = async () => {
+      if (!productData) return;
+      
+      console.log("Fetching live prices for product:", productData.id);
+      setLoading(true);
+      setError(null);
+
+      try {
+        // TODO: Backend Integration - GET /api/prices/:productId
+        // Expected response: { frys: number, walmart: number, safeway: number }
+        // This endpoint will scrape prices from:
+        // - Walmart Tempe Supercenter (800 E Southern Ave, Tempe, AZ 85282)
+        // - Fry's Food Rural Southern (3255 S Rural Rd Tempe, AZ 85282)
+        // - Safeway Broadway (926 E Broadway Rd Tempe, AZ 85282)
+        
+        // For now, using hardcoded prices as fallback
+        console.log("Using hardcoded prices (backend integration pending)");
+        setLivePrices(productData.prices);
+      } catch (err) {
+        console.error("Error fetching live prices:", err);
+        setError("Failed to fetch live prices. Showing cached data.");
+        setLivePrices(productData.prices);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLivePrices();
+  }, [productData]);
+
   const storePrices: StorePrice[] = useMemo(() => {
     if (!productData) return [];
+    
+    const prices = livePrices || productData.prices;
     
     return [
       {
         store: "Fry's Food Store",
-        price: productData.prices.frys,
-        location: "Phoenix, AZ",
+        price: prices.frys,
+        location: "3255 S Rural Rd, Tempe, AZ",
         icon: "storefront",
         color: "#0066CC",
       },
       {
         store: "Walmart",
-        price: productData.prices.walmart,
-        location: "Phoenix, AZ",
+        price: prices.walmart,
+        location: "800 E Southern Ave, Tempe, AZ",
         icon: "storefront",
         color: "#0071CE",
       },
       {
         store: "Safeway",
-        price: productData.prices.safeway,
-        location: "Phoenix, AZ",
+        price: prices.safeway,
+        location: "926 E Broadway Rd, Tempe, AZ",
         icon: "storefront",
         color: "#E31837",
       },
     ];
-  }, [productData]);
+  }, [productData, livePrices]);
 
   const lowestPrice = useMemo(() => {
     const validPrices = storePrices.filter(sp => sp.price > 0).map(sp => sp.price);
@@ -182,6 +218,25 @@ export default function ProductDetailScreen() {
             </View>
           </View>
         </View>
+
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Fetching live prices...</Text>
+          </View>
+        )}
+
+        {error && (
+          <View style={styles.errorBanner}>
+            <IconSymbol 
+              ios_icon_name="exclamationmark.triangle.fill" 
+              android_material_icon_name="warning" 
+              size={20} 
+              color={colors.accent} 
+            />
+            <Text style={styles.errorBannerText}>{error}</Text>
+          </View>
+        )}
 
         <View style={styles.pricesSection}>
           <Text style={styles.sectionTitle}>Store Prices</Text>
@@ -322,6 +377,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  loadingContainer: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 16,
+    alignItems: 'center',
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 12,
+  },
+  errorBanner: {
+    backgroundColor: '#FFF3CD',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  errorBannerText: {
+    fontSize: 14,
+    color: colors.accent,
+    marginLeft: 8,
+    flex: 1,
   },
   pricesSection: {
     marginBottom: 24,
