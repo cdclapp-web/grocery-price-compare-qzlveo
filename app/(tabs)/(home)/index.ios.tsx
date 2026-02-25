@@ -5,51 +5,24 @@ import { colors } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
 import { useRouter } from "expo-router";
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  iosIcon: string;
-}
-
-const products: Product[] = [
-  {
-    id: "modelo-24",
-    name: "Modelo Especial 24-Pack",
-    description: "24 pack of 12 oz bottles",
-    icon: "liquor",
-    iosIcon: "sparkles",
+// Product prices data
+const productPrices = {
+  "eggs-dozen": {
+    frys: 2.98,
+    walmart: 1.97,
+    safeway: 4.99,
   },
-  {
-    id: "high-noon-8",
-    name: "High Noon Seltzer 8-Pack",
-    description: "8 pack of hard seltzer",
-    icon: "liquor",
-    iosIcon: "sparkles",
+  "chicken-breast": {
+    frys: 4.99,
+    walmart: 5.17,
+    safeway: 8.99,
   },
-  {
-    id: "chicken-breast",
-    name: "Chicken Breast",
-    description: "Price per pound",
-    icon: "restaurant",
-    iosIcon: "fork.knife",
+  "ground-beef": {
+    frys: 7.49,
+    walmart: 7.32,
+    safeway: 10.99,
   },
-  {
-    id: "ground-beef",
-    name: "85% Lean Ground Beef",
-    description: "Price per pound",
-    icon: "restaurant",
-    iosIcon: "fork.knife",
-  },
-  {
-    id: "eggs-dozen",
-    name: "Dozen Eggs",
-    description: "12 large eggs",
-    icon: "egg",
-    iosIcon: "circle.grid.3x3.fill",
-  },
-];
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -59,6 +32,24 @@ export default function HomeScreen() {
     router.push(`/(tabs)/(home)/product/${productId}`);
   };
 
+  const handleMenuPress = () => {
+    console.log("Menu button pressed");
+    // TODO: Add menu functionality
+  };
+
+  // Calculate lowest price for display
+  const getLowestPrice = (productId: string) => {
+    const prices = productPrices[productId as keyof typeof productPrices];
+    return Math.min(prices.frys, prices.walmart, prices.safeway);
+  };
+
+  const eggsLowestPrice = getLowestPrice("eggs-dozen");
+  const chickenLowestPrice = getLowestPrice("chicken-breast");
+  const beefLowestPrice = getLowestPrice("ground-beef");
+
+  const eggsWalmartPrice = productPrices["eggs-dozen"].walmart;
+  const eggsSafewayPrice = productPrices["eggs-dozen"].safeway;
+
   return (
     <View style={styles.container}>
       <ScrollView 
@@ -66,50 +57,127 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Header with Logo and Menu */}
         <View style={styles.header}>
           <Image 
             source={require('@/assets/images/21f6dfa1-1184-43cc-a214-a344514546aa.png')}
             style={styles.logo}
             resizeMode="contain"
           />
+          <TouchableOpacity 
+            style={styles.menuButton}
+            onPress={handleMenuPress}
+            activeOpacity={0.7}
+          >
+            <IconSymbol 
+              ios_icon_name="line.horizontal.3" 
+              android_material_icon_name="menu" 
+              size={32} 
+              color={colors.card} 
+            />
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.productsSection}>
-          <Text style={styles.sectionTitle}>Select a Product</Text>
-          <Text style={styles.sectionSubtitle}>Tap any item to see pricing at Fry&apos;s, Walmart, and Safeway</Text>
+        {/* Sample Products Row */}
+        <View style={styles.sampleProductsSection}>
+          <View style={styles.productsRow}>
+            {/* Dozen Eggs */}
+            <TouchableOpacity 
+              style={styles.sampleProductCard}
+              onPress={() => handleProductPress("eggs-dozen")}
+              activeOpacity={0.7}
+            >
+              <View style={styles.sampleIconContainer}>
+                <IconSymbol 
+                  ios_icon_name="circle.grid.3x3.fill" 
+                  android_material_icon_name="egg" 
+                  size={28} 
+                  color={colors.primary} 
+                />
+              </View>
+              <Text style={styles.sampleProductName}>Dozen Eggs</Text>
+              <Text style={styles.sampleProductPrice}>${eggsLowestPrice.toFixed(2)}</Text>
+            </TouchableOpacity>
+
+            {/* Chicken Breast */}
+            <TouchableOpacity 
+              style={styles.sampleProductCard}
+              onPress={() => handleProductPress("chicken-breast")}
+              activeOpacity={0.7}
+            >
+              <View style={styles.sampleIconContainer}>
+                <IconSymbol 
+                  ios_icon_name="fork.knife" 
+                  android_material_icon_name="restaurant" 
+                  size={28} 
+                  color={colors.primary} 
+                />
+              </View>
+              <Text style={styles.sampleProductName}>Chicken Breast</Text>
+              <Text style={styles.sampleProductPrice}>${chickenLowestPrice.toFixed(2)}/lb</Text>
+            </TouchableOpacity>
+
+            {/* 85% Lean Ground Beef */}
+            <TouchableOpacity 
+              style={styles.sampleProductCard}
+              onPress={() => handleProductPress("ground-beef")}
+              activeOpacity={0.7}
+            >
+              <View style={styles.sampleIconContainer}>
+                <IconSymbol 
+                  ios_icon_name="fork.knife" 
+                  android_material_icon_name="restaurant" 
+                  size={28} 
+                  color={colors.primary} 
+                />
+              </View>
+              <Text style={styles.sampleProductName}>85% Lean Ground Beef</Text>
+              <Text style={styles.sampleProductPrice}>${beefLowestPrice.toFixed(2)}/lb</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Price Comparison Preview */}
+        <View style={styles.comparisonSection}>
+          <Text style={styles.comparisonTitle}>Price Comparison Preview</Text>
+          <Text style={styles.comparisonSubtitle}>Dozen Eggs</Text>
           
-          {products.map((product, index) => (
-            <React.Fragment key={index}>
-              <TouchableOpacity 
-                style={styles.productCard}
-                activeOpacity={0.7}
-                onPress={() => handleProductPress(product.id)}
-              >
-                <View style={styles.productIconContainer}>
-                  <IconSymbol 
-                    ios_icon_name={product.iosIcon} 
-                    android_material_icon_name={product.icon} 
-                    size={32} 
-                    color={colors.primary} 
-                  />
-                </View>
-                
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName}>{product.name}</Text>
-                  <Text style={styles.productDescription}>{product.description}</Text>
-                </View>
-                
-                <View style={styles.arrowContainer}>
-                  <IconSymbol 
-                    ios_icon_name="chevron.right" 
-                    android_material_icon_name="chevron_right" 
-                    size={24} 
-                    color={colors.textSecondary} 
-                  />
-                </View>
-              </TouchableOpacity>
-            </React.Fragment>
-          ))}
+          <View style={styles.comparisonCards}>
+            {/* Walmart */}
+            <View style={styles.comparisonCard}>
+              <View style={styles.storeIconContainer}>
+                <IconSymbol 
+                  ios_icon_name="storefront" 
+                  android_material_icon_name="store" 
+                  size={32} 
+                  color="#0071CE" 
+                />
+              </View>
+              <Text style={styles.storeName}>Walmart</Text>
+              <Text style={styles.storePrice}>${eggsWalmartPrice.toFixed(2)}</Text>
+            </View>
+
+            {/* Safeway */}
+            <View style={styles.comparisonCard}>
+              <View style={styles.storeIconContainer}>
+                <IconSymbol 
+                  ios_icon_name="storefront" 
+                  android_material_icon_name="store" 
+                  size={32} 
+                  color="#0055A5" 
+                />
+              </View>
+              <Text style={styles.storeName}>Safeway</Text>
+              <Text style={styles.storePrice}>${eggsSafewayPrice.toFixed(2)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Descriptive Text Box */}
+        <View style={styles.descriptionBox}>
+          <Text style={styles.descriptionText}>
+            Find the best prices for your favorite items at Price Pantry! Check out our price comparison, recent purchases, and grocery list tools, with many more features to come down the road.
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -132,61 +200,119 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 32,
+    position: 'relative',
   },
   logo: {
     width: 120,
     height: 120,
   },
-  productsSection: {
-    marginBottom: 24,
+  menuButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    padding: 8,
   },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.card,
-    marginBottom: 8,
+  sampleProductsSection: {
+    marginBottom: 32,
   },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: colors.card,
-    marginBottom: 16,
-    lineHeight: 20,
+  productsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  productCard: {
+  sampleProductCard: {
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
     alignItems: 'center',
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: colors.secondary,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    elevation: 3,
   },
-  productIconContainer: {
+  sampleIconContainer: {
     width: 56,
     height: 56,
     borderRadius: 28,
     backgroundColor: colors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  productInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  productName: {
-    fontSize: 18,
+  sampleProductName: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 18,
   },
-  productDescription: {
-    fontSize: 14,
+  sampleProductPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  comparisonSection: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    elevation: 3,
+  },
+  comparisonTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  comparisonSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.textSecondary,
-    marginTop: 2,
+    marginBottom: 16,
+    textAlign: 'center',
   },
-  arrowContainer: {
-    marginLeft: 8,
+  comparisonCards: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 16,
+  },
+  comparisonCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.backgroundAlt,
+    borderRadius: 8,
+  },
+  storeIconContainer: {
+    marginBottom: 8,
+  },
+  storeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  storePrice: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  descriptionBox: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 20,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    elevation: 3,
+  },
+  descriptionText: {
+    fontSize: 16,
+    color: colors.text,
+    lineHeight: 24,
+    textAlign: 'center',
   },
 });
