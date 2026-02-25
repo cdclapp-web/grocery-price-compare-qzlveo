@@ -1,9 +1,10 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { ScrollView, StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
 import { colors } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
 import { useRouter } from "expo-router";
+import SidebarMenu from "@/components/SidebarMenu";
 
 // Product prices data
 const productPrices = {
@@ -26,6 +27,7 @@ const productPrices = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [sidebarVisible, setSidebarVisible] = useState(false);
 
   const handleProductPress = (productId: string) => {
     console.log("Navigating to product:", productId);
@@ -33,8 +35,13 @@ export default function HomeScreen() {
   };
 
   const handleMenuPress = () => {
-    console.log("Menu button pressed");
-    // TODO: Add menu functionality
+    console.log("Menu button pressed - opening sidebar");
+    setSidebarVisible(true);
+  };
+
+  const handleCloseSidebar = () => {
+    console.log("Closing sidebar");
+    setSidebarVisible(false);
   };
 
   // Calculate lowest price for display
@@ -180,6 +187,9 @@ export default function HomeScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Sidebar Menu */}
+      <SidebarMenu visible={sidebarVisible} onClose={handleCloseSidebar} />
     </View>
   );
 }
