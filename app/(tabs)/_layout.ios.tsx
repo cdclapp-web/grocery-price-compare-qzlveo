@@ -14,6 +14,7 @@ export default function TabLayout() {
       }}
     >
       <Stack.Screen key="home" name="(home)" />
+      <Stack.Screen key="deals" name="deals" options={{ animation: 'slide_from_right' }} />
     </Stack>
   );
 }

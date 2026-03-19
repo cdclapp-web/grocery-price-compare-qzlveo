@@ -51,6 +51,10 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
       console.log('Navigating to search screen');
       onClose();
       router.push('/search');
+    } else if (item === 'Current Deals') {
+      console.log('Navigating to Current Deals screen');
+      onClose();
+      router.push('/(tabs)/deals');
     } else {
       console.log('Menu item not yet implemented:', item);
       onClose();
