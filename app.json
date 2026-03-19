@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Price Pantry - Compare Prices",
-    "slug": "price-pantry-compare-prices",
+    "name": "Grocery Price Compare",
+    "slug": "Grocery Price Compare",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/natively-dark.png",
@@ -36,7 +36,7 @@
       "expo-router",
       "expo-web-browser"
     ],
-    "scheme": "pricepantrycompareprices",
+    "scheme": "Grocery Price Compare",
     "experiments": {
       "typedRoutes": true
     },
