@@ -55,6 +55,10 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
       console.log('Navigating to Current Deals screen');
       onClose();
       router.push('/(tabs)/deals');
+    } else if (item === 'Privacy Policy') {
+      console.log('Navigating to Privacy Policy screen');
+      onClose();
+      router.push('/privacy-policy');
     } else {
       console.log('Menu item not yet implemented:', item);
       onClose();

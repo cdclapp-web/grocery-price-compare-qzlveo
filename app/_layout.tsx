@@ -113,6 +113,13 @@ export default function RootLayout() {
                   headerShown: false,
                 }}
               />
+              <Stack.Screen
+                name="privacy-policy"
+                options={{
+                  title: "Privacy Policy",
+                  headerShown: false,
+                }}
+              />
             </Stack>
             <SystemBars style={"auto"} />
             </GestureHandlerRootView>
