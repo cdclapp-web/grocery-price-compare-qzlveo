@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { ScrollView, StyleSheet, View, Text, TextInput, TouchableOpacity } from "react-native";
 import { colors } from "@/styles/commonStyles";
 import { IconSymbol } from "@/components/IconSymbol";
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 
 interface ProductPriceOption {
@@ -102,6 +103,19 @@ export default function SearchScreen() {
           headerTitleStyle: {
             fontWeight: '700',
           },
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => {
+                console.log('[Search] Back button pressed');
+                router.back();
+              }}
+              style={searchHeaderStyles.backButton}
+              activeOpacity={0.7}
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.card} />
+            </TouchableOpacity>
+          ),
         }} 
       />
       
@@ -212,6 +226,13 @@ export default function SearchScreen() {
     </View>
   );
 }
+
+const searchHeaderStyles = StyleSheet.create({
+  backButton: {
+    padding: 4,
+    marginLeft: 4,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
