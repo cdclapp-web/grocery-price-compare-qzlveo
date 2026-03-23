@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { BodyScrollView } from '@/components/BodyScrollView';
-import { IconSymbol } from '@/components/IconSymbol';
+import { Ionicons } from '@expo/vector-icons';
 
 const BG_COLOR = '#51B336';
 
@@ -23,12 +23,7 @@ export default function PrivacyPolicyScreen() {
           headerTitleStyle: { fontWeight: '700', color: '#fff' },
           headerLeft: () => (
             <TouchableOpacity onPress={handleBack} style={styles.backButton} activeOpacity={0.7}>
-              <IconSymbol
-                ios_icon_name="chevron.left"
-                android_material_icon_name="arrow-back"
-                size={22}
-                color="#fff"
-              />
+              <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
           ),
         }}
