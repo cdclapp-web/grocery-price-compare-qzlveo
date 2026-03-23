@@ -29,7 +29,12 @@ export default function PrivacyPolicyScreen() {
         }}
       />
       <BodyScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <Text style={styles.pageTitle}>Privacy Policy</Text>
+        <View style={styles.pageTitleRow}>
+          <TouchableOpacity onPress={handleBack} style={styles.pageTitleBack} activeOpacity={0.7}>
+            <Ionicons name="chevron-back" size={28} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.pageTitle}>Privacy Policy</Text>
+        </View>
         <Text style={styles.effectiveDate}>Effective Date: 3/20/26</Text>
 
         <Text style={styles.intro}>
@@ -104,11 +109,19 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 4,
   },
+  pageTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  pageTitleBack: {
+    marginRight: 6,
+    padding: 2,
+  },
   pageTitle: {
     fontSize: 28,
     fontWeight: '800',
     color: '#fff',
-    marginBottom: 4,
   },
   effectiveDate: {
     fontSize: 14,
