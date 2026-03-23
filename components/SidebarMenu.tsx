@@ -150,16 +150,16 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
 
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={() => handleMenuItemPress('Recent Purchases')}
+              onPress={() => handleMenuItemPress('Shopping List')}
               activeOpacity={0.7}
             >
               <IconSymbol
-                ios_icon_name="clock.fill"
-                android_material_icon_name="history"
+                ios_icon_name="cart.fill"
+                android_material_icon_name="shopping-cart"
                 size={24}
                 color={colors.text}
               />
-              <Text style={styles.menuItemText}>Recent Purchases</Text>
+              <Text style={styles.menuItemText}>Shopping List</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
