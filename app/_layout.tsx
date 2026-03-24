@@ -15,6 +15,7 @@ import {
 } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import { WidgetProvider } from "@/contexts/WidgetContext";
+import { ShoppingListProvider } from "@/contexts/ShoppingListContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -83,10 +84,15 @@ export default function RootLayout() {
           value={colorScheme === "dark" ? CustomDarkTheme : CustomDefaultTheme}
         >
           <WidgetProvider>
+            <ShoppingListProvider>
             <GestureHandlerRootView>
             <Stack>
               {/* Main app with tabs */}
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+              {/* Shopping feature screens */}
+              <Stack.Screen name="search" options={{ headerShown: false }} />
+              <Stack.Screen name="shopping-list" options={{ headerShown: false }} />
 
               {/* Modal Demo Screens */}
               <Stack.Screen
@@ -123,6 +129,7 @@ export default function RootLayout() {
             </Stack>
             <SystemBars style={"auto"} />
             </GestureHandlerRootView>
+            </ShoppingListProvider>
           </WidgetProvider>
         </ThemeProvider>
     </>

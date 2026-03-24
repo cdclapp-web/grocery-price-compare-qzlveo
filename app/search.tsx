@@ -1,359 +1,404 @@
+import React, { useRef, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  SafeAreaView,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { WebView } from 'react-native-webview';
+import type { WebView as WebViewType } from 'react-native-webview';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { colors } from '@/styles/commonStyles';
+import { useShoppingList } from '@/contexts/ShoppingListContext';
 
-import React, { useState, useMemo } from "react";
-import { ScrollView, StyleSheet, View, Text, TextInput, TouchableOpacity } from "react-native";
-import { colors } from "@/styles/commonStyles";
-import { IconSymbol } from "@/components/IconSymbol";
-import { Ionicons } from "@expo/vector-icons";
-import { Stack, useRouter } from "expo-router";
+const PRIMARY_GREEN = '#51B336';
 
-interface ProductPriceOption {
-  brand: string;
-  price: number;
-  store: 'Fry\'s' | 'Walmart' | 'Safeway';
-  productName: string;
-  category: string;
-}
+const STORES = [
+  {
+    key: 'walmart',
+    label: 'Walmart',
+    accentColor: colors.walmartBlue,
+    buildUrl: (q: string) => `https://www.walmart.com/search?q=${encodeURIComponent(q)}`,
+  },
+  {
+    key: 'frys',
+    label: "Fry's",
+    accentColor: colors.frysRed,
+    buildUrl: (q: string) => `https://www.frysfood.com/search?query=${encodeURIComponent(q)}`,
+  },
+  {
+    key: 'safeway',
+    label: 'Safeway',
+    accentColor: colors.safewayRed,
+    buildUrl: (q: string) => `https://www.safeway.com/shop/search-results.html?q=${encodeURIComponent(q)}`,
+  },
+] as const;
 
-// All available products across all stores
-const allProducts: ProductPriceOption[] = [
-  // Modelo
-  { brand: 'Modelo', price: 27.94, store: 'Walmart', productName: 'Modelo Especial 24-Pack', category: 'Beer' },
-  { brand: 'Modelo', price: 28.88, store: 'Safeway', productName: 'Modelo Especial 24-Pack', category: 'Beer' },
-  { brand: 'Modelo', price: 29.99, store: 'Fry\'s', productName: 'Modelo Especial 24-Pack', category: 'Beer' },
-  
-  // High Noon
-  { brand: 'High Noon', price: 15.99, store: 'Fry\'s', productName: 'High Noon Seltzer 8-Pack', category: 'Seltzer' },
-  { brand: 'High Noon', price: 15.99, store: 'Safeway', productName: 'High Noon Seltzer 8-Pack', category: 'Seltzer' },
-  { brand: 'High Noon', price: 17.87, store: 'Walmart', productName: 'High Noon Seltzer 8-Pack', category: 'Seltzer' },
-  
-  // Chicken Breast
-  { brand: 'Foster Farms', price: 4.99, store: 'Fry\'s', productName: 'Foster Farms Chicken Breast', category: 'Meat' },
-  { brand: 'Foster Farms', price: 5.17, store: 'Walmart', productName: 'Foster Farms Chicken Breast', category: 'Meat' },
-  { brand: 'Kroger', price: 5.49, store: 'Fry\'s', productName: 'Kroger Chicken Breast', category: 'Meat' },
-  { brand: 'Simple Truth Organic', price: 7.99, store: 'Walmart', productName: 'Simple Truth Organic Chicken Breast', category: 'Meat' },
-  { brand: 'Heritage Farm', price: 8.49, store: 'Safeway', productName: 'Heritage Farm Chicken Breast', category: 'Meat' },
-  { brand: 'Foster Farms', price: 8.99, store: 'Safeway', productName: 'Foster Farms Chicken Breast', category: 'Meat' },
-  { brand: 'Simple Truth Organic', price: 9.99, store: 'Safeway', productName: 'Simple Truth Organic Chicken Breast', category: 'Meat' },
-  
-  // Ground Beef
-  { brand: 'Store Brand', price: 7.32, store: 'Walmart', productName: '85% Lean Ground Beef', category: 'Meat' },
-  { brand: 'Store Brand', price: 7.49, store: 'Fry\'s', productName: '85% Lean Ground Beef', category: 'Meat' },
-  { brand: 'Certified Angus', price: 9.99, store: 'Walmart', productName: 'Certified Angus 85% Lean Ground Beef', category: 'Meat' },
-  { brand: 'Store Brand', price: 10.99, store: 'Safeway', productName: '85% Lean Ground Beef', category: 'Meat' },
-  { brand: 'Organic Valley', price: 12.99, store: 'Safeway', productName: 'Organic Valley 85% Lean Ground Beef', category: 'Meat' },
-  
-  // Eggs
-  { brand: 'Great Value', price: 1.97, store: 'Walmart', productName: 'Great Value Large Eggs', category: 'Dairy' },
-  { brand: 'Kroger', price: 2.98, store: 'Fry\'s', productName: 'Kroger Large Eggs', category: 'Dairy' },
-  { brand: 'Eggland\'s Best', price: 4.49, store: 'Walmart', productName: 'Eggland\'s Best Large Eggs', category: 'Dairy' },
-  { brand: 'O Organics', price: 4.99, store: 'Safeway', productName: 'O Organics Large Eggs', category: 'Dairy' },
-  { brand: 'Vital Farms', price: 6.99, store: 'Safeway', productName: 'Vital Farms Pasture-Raised Eggs', category: 'Dairy' },
-];
+type StoreKey = typeof STORES[number]['key'];
 
 export default function SearchScreen() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { addItem } = useShoppingList();
 
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return [];
+  const [query, setQuery] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
+  const [activeStore, setActiveStore] = useState<StoreKey>('walmart');
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState('');
+  const [currentTitle, setCurrentTitle] = useState('');
+
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const webViewRef = useRef<WebViewType>(null);
+
+  const activeStoreData = STORES.find(s => s.key === activeStore)!;
+  const webViewUrl = submittedQuery
+    ? activeStoreData.buildUrl(submittedQuery)
+    : activeStoreData.buildUrl('grocery');
+
+  const handleSearch = useCallback(() => {
+    const trimmed = query.trim();
+    console.log('[Search] Search submitted, query:', trimmed, 'store:', activeStore);
+    if (trimmed) {
+      setSubmittedQuery(trimmed);
     }
+  }, [query, activeStore]);
 
-    const query = searchQuery.toLowerCase();
-    const filtered = allProducts.filter(product => {
-      const productNameMatch = product.productName.toLowerCase().includes(query);
-      const brandMatch = product.brand.toLowerCase().includes(query);
-      const storeMatch = product.store.toLowerCase().includes(query);
-      const categoryMatch = product.category.toLowerCase().includes(query);
-      
-      return productNameMatch || brandMatch || storeMatch || categoryMatch;
+  const handleStoreChange = useCallback((key: StoreKey) => {
+    console.log('[Search] Store tab pressed:', key);
+    setActiveStore(key);
+  }, []);
+
+  const handleClearQuery = useCallback(() => {
+    console.log('[Search] Clear search pressed');
+    setQuery('');
+    setSubmittedQuery('');
+  }, []);
+
+  const showToast = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1600),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+  }, [toastOpacity]);
+
+  const handleAddToList = useCallback(async () => {
+    console.log('[Search] Add to Shopping List pressed, url:', currentUrl, 'title:', currentTitle);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const itemName = currentTitle || submittedQuery || 'Item from ' + activeStoreData.label;
+    const itemUrl = currentUrl || webViewUrl;
+
+    addItem({
+      id: Date.now().toString(),
+      name: itemName,
+      store: activeStoreData.label,
+      url: itemUrl,
+      addedAt: new Date().toISOString(),
     });
 
-    const sorted = filtered.sort((a, b) => a.price - b.price);
-    return sorted;
-  }, [searchQuery]);
+    console.log('[Search] Item added to shopping list:', itemName);
+    showToast();
+  }, [currentUrl, currentTitle, submittedQuery, activeStoreData, webViewUrl, addItem, showToast]);
 
-  const getStoreColor = (store: string) => {
-    const storeColorMap: Record<string, string> = {
-      'Fry\'s': colors.frysRed,
-      'Walmart': colors.walmartBlue,
-      'Safeway': colors.safewayRed,
-    };
-    return storeColorMap[store] || colors.primary;
-  };
+  const handleWebViewLoadStart = useCallback(() => {
+    console.log('[Search] WebView load started');
+    setIsLoading(true);
+  }, []);
 
-  const handleClearSearch = () => {
-    console.log('Clearing search');
-    setSearchQuery('');
-  };
+  const handleWebViewLoadEnd = useCallback(() => {
+    console.log('[Search] WebView load finished');
+    setIsLoading(false);
+    // Inject JS to grab page title
+    webViewRef.current?.injectJavaScript(`
+      (function() {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'title', value: document.title }));
+      })();
+      true;
+    `);
+  }, []);
 
-  const resultCountText = searchResults.length === 1 ? '1 result' : `${searchResults.length} results`;
-  const showResults = searchQuery.trim().length > 0;
+  const handleWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+    try {
+      const msg = JSON.parse(event.nativeEvent.data);
+      if (msg.type === 'title') {
+        console.log('[Search] WebView page title:', msg.value);
+        setCurrentTitle(msg.value);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleNavigationStateChange = useCallback((navState: { url: string }) => {
+    console.log('[Search] WebView navigation state changed, url:', navState.url);
+    setCurrentUrl(navState.url);
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen 
-        options={{
-          headerShown: true,
-          title: 'Search Items',
-          headerStyle: {
-            backgroundColor: colors.background,
-          },
-          headerTintColor: colors.card,
-          headerTitleStyle: {
-            fontWeight: '700',
-          },
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => {
-                console.log('[Search] Back button pressed');
-                router.back();
-              }}
-              style={searchHeaderStyles.backButton}
-              activeOpacity={0.7}
-              accessibilityLabel="Go back"
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.card} />
-            </TouchableOpacity>
-          ),
-        }} 
-      />
-      
-      <View style={styles.searchContainer}>
+    <SafeAreaView style={styles.safeArea}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerIconBtn}
+          onPress={() => {
+            console.log('[Search] Back button pressed');
+            router.back();
+          }}
+          activeOpacity={0.7}
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.card} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Search Items</Text>
+        <View style={styles.headerIconBtn} />
+      </View>
+
+      {/* Search Input */}
+      <View style={styles.searchRow}>
         <View style={styles.searchInputContainer}>
-          <IconSymbol 
-            ios_icon_name="magnifyingglass" 
-            android_material_icon_name="search" 
-            size={20} 
-            color={colors.textSecondary} 
-          />
+          <Ionicons name="search" size={18} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search for products, brands, or stores..."
+            placeholder="Search for groceries..."
             placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoFocus
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={handleClearSearch} activeOpacity={0.7}>
-              <IconSymbol 
-                ios_icon_name="xmark.circle.fill" 
-                android_material_icon_name="cancel" 
-                size={20} 
-                color={colors.textSecondary} 
-              />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={handleClearQuery} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch} activeOpacity={0.8}>
+          <Text style={styles.searchButtonText}>Go</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      {/* Segmented Control */}
+      <View style={styles.segmentedControl}>
+        {STORES.map(store => {
+          const isActive = activeStore === store.key;
+          return (
+            <TouchableOpacity
+              key={store.key}
+              style={[styles.segmentTab, isActive && { backgroundColor: store.accentColor }]}
+              onPress={() => handleStoreChange(store.key)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.segmentTabText, isActive && styles.segmentTabTextActive]}>
+                {store.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* WebView */}
+      <KeyboardAvoidingView
+        style={styles.webViewArea}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {!showResults && (
-          <View style={styles.emptyState}>
-            <IconSymbol 
-              ios_icon_name="magnifyingglass" 
-              android_material_icon_name="search" 
-              size={64} 
-              color={colors.textSecondary} 
-            />
-            <Text style={styles.emptyStateTitle}>Search for Items</Text>
-            <Text style={styles.emptyStateText}>
-              Find products from Fry&apos;s, Walmart, and Safeway
-            </Text>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: webViewUrl }}
+          style={styles.webView}
+          onLoadStart={handleWebViewLoadStart}
+          onLoadEnd={handleWebViewLoadEnd}
+          onNavigationStateChange={handleNavigationStateChange}
+          onMessage={handleWebViewMessage}
+          javaScriptEnabled
+          domStorageEnabled
+          userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        />
+
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={PRIMARY_GREEN} />
+            <Text style={styles.loadingText}>Loading {activeStoreData.label}...</Text>
           </View>
         )}
 
-        {showResults && searchResults.length === 0 && (
-          <View style={styles.emptyState}>
-            <IconSymbol 
-              ios_icon_name="exclamationmark.triangle" 
-              android_material_icon_name="warning" 
-              size={64} 
-              color={colors.textSecondary} 
-            />
-            <Text style={styles.emptyStateTitle}>No Results Found</Text>
-            <Text style={styles.emptyStateText}>
-              Try searching for different keywords
-            </Text>
-          </View>
-        )}
+        {/* Floating Add Button */}
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={handleAddToList}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add" size={20} color="#fff" />
+          <Text style={styles.addButtonText}>Add to Shopping List</Text>
+        </TouchableOpacity>
 
-        {showResults && searchResults.length > 0 && (
-          <View style={styles.resultsSection}>
-            <Text style={styles.resultsCount}>{resultCountText}</Text>
-            
-            {searchResults.map((result, index) => {
-              const priceText = `$${result.price.toFixed(2)}`;
-              
-              return (
-                <React.Fragment key={index}>
-                  <View style={styles.resultCard}>
-                    <View style={styles.resultCardContent}>
-                      <View style={[styles.storeIconContainer, { backgroundColor: getStoreColor(result.store) }]}>
-                        <IconSymbol 
-                          ios_icon_name="storefront" 
-                          android_material_icon_name="store" 
-                          size={24} 
-                          color="#FFFFFF" 
-                        />
-                      </View>
-                      
-                      <View style={styles.resultInfo}>
-                        <Text style={styles.resultBrand}>{result.brand}</Text>
-                        <Text style={styles.resultProductName}>{result.productName}</Text>
-                        <View style={styles.resultMeta}>
-                          <Text style={styles.resultStore}>{result.store}</Text>
-                          <Text style={styles.resultCategory}>{result.category}</Text>
-                        </View>
-                      </View>
-                      
-                      <View style={styles.resultPriceContainer}>
-                        <Text style={styles.resultPrice}>{priceText}</Text>
-                      </View>
-                    </View>
-                  </View>
-                </React.Fragment>
-              );
-            })}
-          </View>
-        )}
-      </ScrollView>
-    </View>
+        {/* Toast */}
+        <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
+          <Ionicons name="checkmark-circle" size={18} color="#fff" />
+          <Text style={styles.toastText}>Added to Shopping List ✓</Text>
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
-const searchHeaderStyles = StyleSheet.create({
-  backButton: {
-    padding: 4,
-    marginLeft: 4,
-  },
-});
-
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: PRIMARY_GREEN,
   },
-  searchContainer: {
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.background,
+    backgroundColor: PRIMARY_GREEN,
+  },
+  headerIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.card,
+    letterSpacing: -0.3,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 8,
   },
   searchInputContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text,
-    marginLeft: 12,
-    marginRight: 12,
   },
-  scrollView: {
-    flex: 1,
+  searchButton: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
   },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 32,
-  },
-  emptyStateTitle: {
-    fontSize: 22,
+  searchButtonText: {
+    fontSize: 15,
     fontWeight: '700',
     color: colors.card,
-    marginTop: 24,
-    textAlign: 'center',
   },
-  emptyStateText: {
-    fontSize: 16,
+  segmentedControl: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 10,
+    padding: 4,
+    gap: 4,
+  },
+  segmentTab: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.75)',
+  },
+  segmentTabTextActive: {
     color: colors.card,
-    marginTop: 12,
-    textAlign: 'center',
-    opacity: 0.8,
   },
-  resultsSection: {
+  webViewArea: {
+    flex: 1,
+    backgroundColor: colors.card,
     marginTop: 8,
   },
-  resultsCount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.card,
-    marginBottom: 16,
+  webView: {
+    flex: 1,
   },
-  resultCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
-    elevation: 2,
-  },
-  resultCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  storeIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 12,
   },
-  resultInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  resultBrand: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  resultProductName: {
-    fontSize: 14,
-    color: colors.text,
-    marginTop: 2,
-  },
-  resultMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  resultStore: {
-    fontSize: 13,
+  loadingText: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  resultCategory: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginLeft: 8,
-    paddingLeft: 8,
-    borderLeftWidth: 1,
-    borderLeftColor: colors.textSecondary,
+  addButton: {
+    position: 'absolute',
+    bottom: 24,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: PRIMARY_GREEN,
+    borderRadius: 30,
+    paddingVertical: 16,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  resultPriceContainer: {
-    alignItems: 'flex-end',
-  },
-  resultPrice: {
-    fontSize: 20,
+  addButtonText: {
+    fontSize: 16,
     fontWeight: '700',
-    color: colors.primary,
+    color: '#fff',
+  },
+  toast: {
+    position: 'absolute',
+    bottom: 90,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30,30,30,0.88)',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  toastText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

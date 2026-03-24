@@ -51,6 +51,10 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
       console.log('Navigating to search screen');
       onClose();
       router.push('/search');
+    } else if (item === 'Shopping List') {
+      console.log('Navigating to shopping list screen');
+      onClose();
+      router.push('/shopping-list');
     } else if (item === 'Current Deals') {
       console.log('Navigating to Current Deals screen');
       onClose();
