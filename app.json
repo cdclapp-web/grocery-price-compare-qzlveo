@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.0pp00.pricepantry",
+      "bundleIdentifier": "com.p7399a7b22a36433cae84a5645b59107b.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
