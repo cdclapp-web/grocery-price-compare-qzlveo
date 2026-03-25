@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  Linking,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import type { WebView as WebViewType } from 'react-native-webview';
@@ -43,6 +45,13 @@ const STORES = [
 ] as const;
 
 type StoreKey = typeof STORES[number]['key'];
+type StoreMap<T> = Record<StoreKey, T>;
+
+const createStoreMap = <T,>(factory: (store: typeof STORES[number]) => T): StoreMap<T> =>
+  STORES.reduce((acc, store) => {
+    acc[store.key] = factory(store);
+    return acc;
+  }, {} as StoreMap<T>);
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -50,39 +59,37 @@ export default function SearchScreen() {
 
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
-  const [activeStore, setActiveStore] = useState<StoreKey>('walmart');
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState('');
-  const [currentTitle, setCurrentTitle] = useState('');
+  const [loadingStates, setLoadingStates] = useState<StoreMap<boolean>>(() => createStoreMap(() => false));
+  const [pageTitles, setPageTitles] = useState<StoreMap<string>>(() => createStoreMap(() => ''));
+  const [pageUrls, setPageUrls] = useState<StoreMap<string>>(() => createStoreMap(store => store.buildUrl('grocery')));
+  const [toastMessage, setToastMessage] = useState('Added to Shopping List');
 
   const toastOpacity = useRef(new Animated.Value(0)).current;
-  const webViewRef = useRef<WebViewType>(null);
+  const webViewRefs = useRef<Partial<Record<StoreKey, WebViewType | null>>>({});
 
-  const activeStoreData = STORES.find(s => s.key === activeStore)!;
-  const webViewUrl = submittedQuery
-    ? activeStoreData.buildUrl(submittedQuery)
-    : activeStoreData.buildUrl('grocery');
+  const webViewUrls = useMemo(() => {
+    const currentQuery = submittedQuery || 'grocery';
+    return createStoreMap(store => store.buildUrl(currentQuery));
+  }, [submittedQuery]);
 
   const handleSearch = useCallback(() => {
     const trimmed = query.trim();
-    console.log('[Search] Search submitted, query:', trimmed, 'store:', activeStore);
+    console.log('[Search] Comparison search submitted, query:', trimmed);
     if (trimmed) {
       setSubmittedQuery(trimmed);
     }
-  }, [query, activeStore]);
-
-  const handleStoreChange = useCallback((key: StoreKey) => {
-    console.log('[Search] Store tab pressed:', key);
-    setActiveStore(key);
-  }, []);
+  }, [query]);
 
   const handleClearQuery = useCallback(() => {
     console.log('[Search] Clear search pressed');
     setQuery('');
     setSubmittedQuery('');
+    setPageTitles(createStoreMap(() => ''));
+    setPageUrls(createStoreMap(store => store.buildUrl('grocery')));
   }, []);
 
-  const showToast = useCallback(() => {
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
     Animated.sequence([
       Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
       Animated.delay(1600),
@@ -90,35 +97,40 @@ export default function SearchScreen() {
     ]).start();
   }, [toastOpacity]);
 
-  const handleAddToList = useCallback(async () => {
-    console.log('[Search] Add to Shopping List pressed, url:', currentUrl, 'title:', currentTitle);
+  const handleAddToList = useCallback(async (storeKey: StoreKey) => {
+    const store = STORES.find(item => item.key === storeKey)!;
+    const itemTitle = pageTitles[storeKey] || submittedQuery || `Item from ${store.label}`;
+    const itemUrl = pageUrls[storeKey] || webViewUrls[storeKey];
+
+    console.log('[Search] Add to Shopping List pressed:', store.label, itemUrl, itemTitle);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const itemName = currentTitle || submittedQuery || 'Item from ' + activeStoreData.label;
-    const itemUrl = currentUrl || webViewUrl;
-
     addItem({
-      id: Date.now().toString(),
-      name: itemName,
-      store: activeStoreData.label,
+      id: `${Date.now()}-${storeKey}`,
+      name: itemTitle,
+      store: store.label,
       url: itemUrl,
       addedAt: new Date().toISOString(),
     });
 
-    console.log('[Search] Item added to shopping list:', itemName);
-    showToast();
-  }, [currentUrl, currentTitle, submittedQuery, activeStoreData, webViewUrl, addItem, showToast]);
+    showToast(`Added ${store.label} result`);
+  }, [addItem, pageTitles, pageUrls, showToast, submittedQuery, webViewUrls]);
 
-  const handleWebViewLoadStart = useCallback(() => {
-    console.log('[Search] WebView load started');
-    setIsLoading(true);
+  const handleOpenStore = useCallback(async (storeKey: StoreKey) => {
+    const targetUrl = pageUrls[storeKey] || webViewUrls[storeKey];
+    console.log('[Search] Open store result:', storeKey, targetUrl);
+    await Linking.openURL(targetUrl);
+  }, [pageUrls, webViewUrls]);
+
+  const handleWebViewLoadStart = useCallback((storeKey: StoreKey) => {
+    console.log('[Search] WebView load started:', storeKey);
+    setLoadingStates(prev => ({ ...prev, [storeKey]: true }));
   }, []);
 
-  const handleWebViewLoadEnd = useCallback(() => {
-    console.log('[Search] WebView load finished');
-    setIsLoading(false);
-    // Inject JS to grab page title
-    webViewRef.current?.injectJavaScript(`
+  const handleWebViewLoadEnd = useCallback((storeKey: StoreKey) => {
+    console.log('[Search] WebView load finished:', storeKey);
+    setLoadingStates(prev => ({ ...prev, [storeKey]: false }));
+    webViewRefs.current[storeKey]?.injectJavaScript(`
       (function() {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'title', value: document.title }));
       })();
@@ -126,26 +138,25 @@ export default function SearchScreen() {
     `);
   }, []);
 
-  const handleWebViewMessage = useCallback((event: { nativeEvent: { data: string } }) => {
+  const handleWebViewMessage = useCallback((storeKey: StoreKey, data: string) => {
     try {
-      const msg = JSON.parse(event.nativeEvent.data);
-      if (msg.type === 'title') {
-        console.log('[Search] WebView page title:', msg.value);
-        setCurrentTitle(msg.value);
+      const message = JSON.parse(data);
+      if (message.type === 'title' && typeof message.value === 'string') {
+        console.log('[Search] WebView title updated:', storeKey, message.value);
+        setPageTitles(prev => ({ ...prev, [storeKey]: message.value }));
       }
     } catch {
-      // ignore
+      // Ignore malformed messages from vendor pages.
     }
   }, []);
 
-  const handleNavigationStateChange = useCallback((navState: { url: string }) => {
-    console.log('[Search] WebView navigation state changed, url:', navState.url);
-    setCurrentUrl(navState.url);
+  const handleNavigationStateChange = useCallback((storeKey: StoreKey, url: string) => {
+    console.log('[Search] Navigation state changed:', storeKey, url);
+    setPageUrls(prev => ({ ...prev, [storeKey]: url }));
   }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerIconBtn}
@@ -158,17 +169,16 @@ export default function SearchScreen() {
         >
           <Ionicons name="arrow-back" size={22} color={colors.card} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Search Items</Text>
+        <Text style={styles.headerTitle}>Compare Items</Text>
         <View style={styles.headerIconBtn} />
       </View>
 
-      {/* Search Input */}
       <View style={styles.searchRow}>
         <View style={styles.searchInputContainer}>
           <Ionicons name="search" size={18} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search for groceries..."
+            placeholder="Search once and compare all stores..."
             placeholderTextColor={colors.textSecondary}
             value={query}
             onChangeText={setQuery}
@@ -178,7 +188,11 @@ export default function SearchScreen() {
             autoCorrect={false}
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={handleClearQuery} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity
+              onPress={handleClearQuery}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
               <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
@@ -188,64 +202,94 @@ export default function SearchScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Segmented Control */}
-      <View style={styles.segmentedControl}>
-        {STORES.map(store => {
-          const isActive = activeStore === store.key;
-          return (
-            <TouchableOpacity
-              key={store.key}
-              style={[styles.segmentTab, isActive && { backgroundColor: store.accentColor }]}
-              onPress={() => handleStoreChange(store.key)}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.segmentTabText, isActive && styles.segmentTabTextActive]}>
-                {store.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+      <View style={styles.summaryBanner}>
+        <Ionicons name="git-compare-outline" size={18} color={colors.card} />
+        <Text style={styles.summaryBannerText}>
+          {submittedQuery
+            ? `Showing "${submittedQuery}" across all stores`
+            : 'Search once to load matching results from Walmart, Fry\'s, and Safeway'}
+        </Text>
       </View>
 
-      {/* WebView */}
       <KeyboardAvoidingView
-        style={styles.webViewArea}
+        style={styles.contentArea}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <WebView
-          ref={webViewRef}
-          source={{ uri: webViewUrl }}
-          style={styles.webView}
-          onLoadStart={handleWebViewLoadStart}
-          onLoadEnd={handleWebViewLoadEnd}
-          onNavigationStateChange={handleNavigationStateChange}
-          onMessage={handleWebViewMessage}
-          javaScriptEnabled
-          domStorageEnabled
-          userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-        />
-
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={PRIMARY_GREEN} />
-            <Text style={styles.loadingText}>Loading {activeStoreData.label}...</Text>
-          </View>
-        )}
-
-        {/* Floating Add Button */}
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={handleAddToList}
-          activeOpacity={0.85}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Ionicons name="add" size={20} color="#fff" />
-          <Text style={styles.addButtonText}>Add to Shopping List</Text>
-        </TouchableOpacity>
+          {STORES.map(store => {
+            const title = pageTitles[store.key];
+            const currentUrl = pageUrls[store.key] || webViewUrls[store.key];
+            const isLoading = loadingStates[store.key];
 
-        {/* Toast */}
+            return (
+              <View key={store.key} style={styles.storeCard}>
+                <View style={styles.storeHeader}>
+                  <View style={styles.storeTitleRow}>
+                    <View style={[styles.storeDot, { backgroundColor: store.accentColor }]} />
+                    <Text style={styles.storeTitle}>{store.label}</Text>
+                  </View>
+                  <View style={styles.storeActions}>
+                    <TouchableOpacity
+                      style={[styles.storeActionButton, styles.secondaryActionButton]}
+                      onPress={() => handleOpenStore(store.key)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="open-outline" size={16} color={colors.text} />
+                      <Text style={styles.secondaryActionText}>Open</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.storeActionButton, { backgroundColor: store.accentColor }]}
+                      onPress={() => handleAddToList(store.key)}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="add" size={16} color="#fff" />
+                      <Text style={styles.primaryActionText}>Add</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <Text style={styles.resultTitle} numberOfLines={2}>
+                  {title || `Browsing ${store.label} search results`}
+                </Text>
+
+                <Text style={styles.resultUrl} numberOfLines={1}>
+                  {currentUrl}
+                </Text>
+
+                <View style={styles.webViewShell}>
+                  <WebView
+                    ref={ref => {
+                      webViewRefs.current[store.key] = ref;
+                    }}
+                    source={{ uri: webViewUrls[store.key] }}
+                    style={styles.webView}
+                    onLoadStart={() => handleWebViewLoadStart(store.key)}
+                    onLoadEnd={() => handleWebViewLoadEnd(store.key)}
+                    onNavigationStateChange={navState => handleNavigationStateChange(store.key, navState.url)}
+                    onMessage={event => handleWebViewMessage(store.key, event.nativeEvent.data)}
+                    javaScriptEnabled
+                    domStorageEnabled
+                    userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                  />
+
+                  {isLoading && (
+                    <View style={styles.loadingOverlay}>
+                      <ActivityIndicator size="large" color={store.accentColor} />
+                      <Text style={styles.loadingText}>Loading {store.label}...</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
           <Ionicons name="checkmark-circle" size={18} color="#fff" />
-          <Text style={styles.toastText}>Added to Shopping List ✓</Text>
+          <Text style={styles.toastText}>{toastMessage}</Text>
         </Animated.View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -312,34 +356,110 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.card,
   },
-  segmentedControl: {
+  summaryBanner: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 10,
-    padding: 4,
-    gap: 4,
-  },
-  segmentTab: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: 8,
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  segmentTabText: {
+  summaryBannerText: {
+    flex: 1,
+    color: colors.card,
     fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 20,
   },
-  segmentTabTextActive: {
-    color: colors.card,
-  },
-  webViewArea: {
+  contentArea: {
     flex: 1,
+    backgroundColor: '#F6F8F4',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 120,
+    gap: 16,
+  },
+  storeCard: {
     backgroundColor: colors.card,
-    marginTop: 8,
+    borderRadius: 20,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  storeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 10,
+  },
+  storeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  storeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+  },
+  storeTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  storeActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  storeActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  secondaryActionButton: {
+    backgroundColor: '#EEF2EC',
+  },
+  secondaryActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  primaryActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  resultTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  resultUrl: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  webViewShell: {
+    height: 280,
+    overflow: 'hidden',
+    borderRadius: 16,
+    backgroundColor: '#F2F5F0',
   },
   webView: {
     flex: 1,
@@ -356,32 +476,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  addButton: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: PRIMARY_GREEN,
-    borderRadius: 30,
-    paddingVertical: 16,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
   toast: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 24,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
