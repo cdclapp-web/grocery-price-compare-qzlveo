@@ -4,7 +4,7 @@
     "slug": "price-pantry-compare-prices",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/natively-dark.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.Natively",
+      "bundleIdentifier": "com.0pp00.pricepantry",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
